@@ -422,6 +422,7 @@ func BenchmarkSyncCaching(b *testing.B) {
 			fmt.Println("[!] cache failed to start: ", err.Error())
 		}
 		cache.CacheNow("filecache.go")
+		cache.Remove("filecache.go")
 		cache.Stop()
 	}
 }

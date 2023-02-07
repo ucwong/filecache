@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strconv"
 	"sync"
 	"time"
@@ -39,7 +40,7 @@ var (
 var SquelchItemNotInCache = true
 
 // Mumber of items to buffer adding to the file cache.
-var NewCachePipeSize = 1
+var NewCachePipeSize = runtime.NumCPU()
 
 type cacheItem struct {
 	content    []byte
@@ -395,7 +396,8 @@ func (cache *FileCache) WriteFile(w io.Writer, name string) (err error) {
 		if err != nil {
 			return
 		} else if fi.IsDir() {
-			return ItemIsDirectory
+			err = ItemIsDirectory
+			return
 		}
 		cache.Cache(name, nil)
 		var file *os.File
@@ -425,7 +427,8 @@ func (cache *FileCache) CacheNow(name string) (err error) {
 	if cache.Size() == cache.MaxItems {
 		cache.expireOldest(true)
 	}
-	return cache.addItem(name, nil)
+	err = cache.addItem(name, nil)
+	return
 }
 
 // Start activates the file cache; it will start up the background caching

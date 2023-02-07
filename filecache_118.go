@@ -12,9 +12,11 @@ func cacheFile(path string, maxSize int64, c []byte) (itm *cacheItem, err error)
 	if err != nil {
 		return
 	} else if fi.Mode().IsDir() {
-		return nil, ItemIsDirectory
+		err = ItemIsDirectory
+		return
 	} else if fi.Size() > maxSize {
-		return nil, ItemTooLarge
+		err = ItemTooLarge
+		return
 	}
 
 	if len(c) > 0 {
