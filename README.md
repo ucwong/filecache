@@ -1,6 +1,14 @@
 # filecache
 ## a simple file cache of Golang
 
+## Install
+
+First, you need to install the package:
+
+```
+go get -u github.com/ucwong/filecache
+```
+
 ## Overview
 
 A file cache can be created with either the `NewDefaultCache()` function to
