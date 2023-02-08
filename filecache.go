@@ -44,36 +44,36 @@ var NewCachePipeSize = runtime.NumCPU()
 
 type cacheItem struct {
 	content    []byte
-	lock       sync.RWMutex
+	mutex      sync.RWMutex
 	Size       int64
 	Lastaccess time.Time
 	Modified   time.Time
 }
 
 func (itm *cacheItem) WasModified(fi os.FileInfo) bool {
-	itm.lock.RLock()
-	defer itm.lock.RUnlock()
+	itm.mutex.RLock()
+	defer itm.mutex.RUnlock()
 	return itm.Modified.Equal(fi.ModTime())
 }
 
 func (itm *cacheItem) GetReader() (b io.Reader) {
-	itm.lock.Lock()
-	defer itm.lock.Unlock()
+	itm.mutex.Lock()
+	defer itm.mutex.Unlock()
 	b = bytes.NewReader(itm.Access())
 	return
 }
 
 func (itm *cacheItem) Access() (c []byte) {
-	itm.lock.Lock()
-	defer itm.lock.Unlock()
+	itm.mutex.Lock()
+	defer itm.mutex.Unlock()
 	itm.Lastaccess = time.Now()
 	c = itm.content
 	return
 }
 
 func (itm *cacheItem) Dur() (t time.Duration) {
-	itm.lock.RLock()
-	defer itm.lock.RUnlock()
+	itm.mutex.RLock()
+	defer itm.mutex.RUnlock()
 	t = time.Now().Sub(itm.Lastaccess)
 	return
 }
@@ -112,25 +112,9 @@ func NewDefaultCache() *FileCache {
 	}
 }
 
-func (cache *FileCache) lock() {
-	cache.mutex.Lock()
-}
-
-func (cache *FileCache) unlock() {
-	cache.mutex.Unlock()
-}
-
-func (cache *FileCache) rlock() {
-	cache.mutex.RLock()
-}
-
-func (cache *FileCache) runlock() {
-	cache.mutex.RUnlock()
-}
-
 func (cache *FileCache) isCacheNull() bool {
-	cache.rlock()
-	defer cache.runlock()
+	cache.mutex.RLock()
+	defer cache.mutex.RUnlock()
 	return cache.items == nil
 }
 
@@ -138,8 +122,8 @@ func (cache *FileCache) getItem(name string) (itm *cacheItem, ok bool) {
 	if cache.isCacheNull() {
 		return nil, false
 	}
-	cache.rlock()
-	defer cache.runlock()
+	cache.mutex.RLock()
+	defer cache.mutex.RUnlock()
 	itm, ok = cache.items[name]
 	return
 }
@@ -158,12 +142,12 @@ func (cache *FileCache) addItem(name string, content []byte) (err error) {
 	}
 
 	itm, err := cacheFile(name, cache.MaxSize, content)
-	cache.lock()
+	cache.mutex.Lock()
 	if cache.items != nil && itm != nil {
 		cache.items[name] = itm
-		cache.unlock()
+		cache.mutex.Unlock()
 	} else {
-		cache.unlock()
+		cache.mutex.Unlock()
 		return
 	}
 	if !cache.InCache(name) {
@@ -173,9 +157,9 @@ func (cache *FileCache) addItem(name string, content []byte) (err error) {
 }
 
 func (cache *FileCache) deleteItem(name string) {
-	cache.lock()
+	cache.mutex.Lock()
 	delete(cache.items, name)
-	cache.unlock()
+	cache.mutex.Unlock()
 }
 
 // itemListener is a goroutine that listens for incoming files and caches
@@ -289,15 +273,15 @@ func (cache *FileCache) Active() bool {
 
 // Size returns the number of entries in the cache.
 func (cache *FileCache) Size() int {
-	cache.rlock()
-	defer cache.runlock()
+	cache.mutex.RLock()
+	defer cache.mutex.RUnlock()
 	return len(cache.items)
 }
 
 // FileSize returns the sum of the file sizes stored in the cache
 func (cache *FileCache) FileSize() (totalSize int64) {
-	cache.rlock()
-	defer cache.runlock()
+	cache.mutex.RLock()
+	defer cache.mutex.RUnlock()
 	for _, itm := range cache.items {
 		totalSize += itm.Size
 	}
@@ -311,8 +295,8 @@ func (cache *FileCache) StoredFiles() (fileList []string) {
 		return
 	}
 
-	cache.rlock()
-	defer cache.runlock()
+	cache.mutex.RLock()
+	defer cache.mutex.RUnlock()
 	for name := range cache.items {
 		fileList = append(fileList, name)
 	}
@@ -325,8 +309,8 @@ func (cache *FileCache) InCache(name string) bool {
 		cache.deleteItem(name)
 		return false
 	}
-	cache.rlock()
-	defer cache.runlock()
+	cache.mutex.RLock()
+	defer cache.mutex.RUnlock()
 	_, ok := cache.items[name]
 	return ok
 }
@@ -342,6 +326,8 @@ func (cache *FileCache) WriteItem(w io.Writer, name string) (err error) {
 	}
 
 	r := itm.GetReader()
+	itm.mutex.Lock()
+	defer itm.mutex.Unlock()
 	itm.Lastaccess = time.Now()
 	n, err := io.Copy(w, r)
 	if err != nil {
@@ -465,9 +451,9 @@ func (cache *FileCache) Stop() {
 		for _, name := range items {
 			cache.deleteItem(name)
 		}
-		cache.lock()
+		cache.mutex.Lock()
 		cache.items = nil
-		cache.unlock()
+		cache.mutex.Unlock()
 	}
 }
 
