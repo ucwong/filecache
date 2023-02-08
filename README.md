@@ -24,6 +24,11 @@ maximum item size of 128M:
 cache := filecache.NewDefaultCache()
 cache.MaxSize = 128 * filecache.Megabyte
 cache.Start()
+
+...
+
+cache.Stop()
+
 ```
 
 The `Kilobyte`, `Megabyte`, and `Gigabyte` constants are provided as a
