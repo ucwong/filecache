@@ -1,6 +1,7 @@
 package filecache
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -337,6 +338,16 @@ func (cache *FileCache) Cache(name string, content []byte) {
 		cache.expireOldest(true)
 	}
 	cache.in <- &CacheInfo{name, content}
+}
+
+func (cache *FileCache) CacheContext(ctx context.Context, name string, content []byte) {
+	if cache.Size() == cache.MaxItems {
+		cache.expireOldest(true)
+	}
+	select {
+	case cache.in <- &CacheInfo{name, content}:
+	case <-ctx.Done():
+	}
 }
 
 // CacheNow immediately caches the file named by 'name'.
