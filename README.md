@@ -1,5 +1,5 @@
 # filecache
-## a simple file cache of Golang
+## A simple file cache of pure Golang
 
 ## Install
 
