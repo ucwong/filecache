@@ -1,82 +1,13 @@
 package filecache
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"strconv"
 	"sync"
 	"time"
 )
-
-const VERSION = "1.0.0"
-
-// File size constants for use with FileCache.MaxSize.
-// For example, cache.MaxSize = 64 * Megabyte
-const (
-	Kilobyte = 1024
-	Megabyte = 1024 * 1024
-	Gigabyte = 1024 * 1024 * 1024
-)
-
-var (
-	DefaultExpireItem int   = 300 // 5 minutes
-	DefaultMaxSize    int64 = 16 * Megabyte
-	DefaultMaxItems   int   = 32
-	DefaultEvery      int   = 60 // 1 minute
-)
-
-var (
-	InvalidCacheItem = errors.New("invalid cache item")
-	ItemIsDirectory  = errors.New("can't cache a directory")
-	ItemNotInCache   = errors.New("item not in cache")
-	ItemTooLarge     = errors.New("item too large for cache")
-	WriteIncomplete  = errors.New("incomplete write of cache item")
-)
-
-var SquelchItemNotInCache = true
-
-// Mumber of items to buffer adding to the file cache.
-var NewCachePipeSize = runtime.NumCPU()
-
-type cacheItem struct {
-	content    []byte
-	mutex      sync.RWMutex
-	Size       int64
-	Lastaccess time.Time
-	Modified   time.Time
-}
-
-func (itm *cacheItem) WasModified(fi os.FileInfo) bool {
-	itm.mutex.RLock()
-	defer itm.mutex.RUnlock()
-	return itm.Modified.Equal(fi.ModTime())
-}
-
-func (itm *cacheItem) GetReader() (b io.Reader) {
-	itm.mutex.Lock()
-	defer itm.mutex.Unlock()
-	b = bytes.NewReader(itm.Access())
-	return
-}
-
-func (itm *cacheItem) Access() (c []byte) {
-	itm.mutex.Lock()
-	defer itm.mutex.Unlock()
-	itm.Lastaccess = time.Now()
-	c = itm.content
-	return
-}
-
-func (itm *cacheItem) Dur() (t time.Duration) {
-	itm.mutex.RLock()
-	defer itm.mutex.RUnlock()
-	t = time.Now().Sub(itm.Lastaccess)
-	return
-}
 
 // FileCache represents a cache in memory.
 // An ExpireItem value of 0 means that items should not be expired based
