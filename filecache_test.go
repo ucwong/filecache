@@ -2,7 +2,6 @@ package filecache
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -33,7 +32,7 @@ func dumpModTime(name string) {
 }
 
 func writeTempFile(t *testing.T, contents string) string {
-	tmpf, err := ioutil.TempFile("", "fctest")
+	tmpf, err := os.CreateTemp("", "fctest")
 	if err != nil {
 		fmt.Println("failed")
 		fmt.Println("[!] couldn't create temporary file: ", err.Error())
@@ -41,7 +40,7 @@ func writeTempFile(t *testing.T, contents string) string {
 	}
 	name := tmpf.Name()
 	tmpf.Close()
-	err = ioutil.WriteFile(name, []byte(contents), 0600)
+	err = os.WriteFile(name, []byte(contents), 0600)
 	if err != nil {
 		fmt.Println("failed")
 		fmt.Println("[!] couldn't write temporary file: ", err.Error())
@@ -153,7 +152,7 @@ func TestFileChanged(t *testing.T) {
 		t.FailNow()
 	}
 	time.Sleep(1 * time.Second)
-	err := ioutil.WriteFile(name, []byte("after modification"), 0600)
+	err := os.WriteFile(name, []byte("after modification"), 0600)
 	if err != nil {
 		fmt.Println("failed")
 		fmt.Println("[!] couldn't write temporary file: ", err.Error())
@@ -252,7 +251,7 @@ func TestExpireAll(t *testing.T) {
 	cache.CacheNow(name2)
 	time.Sleep(500 * time.Millisecond)
 
-	err := ioutil.WriteFile(name2, []byte("lorem ipsum dolor sit amet."), 0600)
+	err := os.WriteFile(name2, []byte("lorem ipsum dolor sit amet."), 0600)
 	if err != nil {
 		fmt.Println("failed")
 		fmt.Println("[!] couldn't write temporary file: ", err.Error())
@@ -324,7 +323,7 @@ func TestNeverExpire(t *testing.T) {
 		fmt.Println("[!] cache failed to start: ", err.Error())
 	}
 
-	tmpf, err := ioutil.TempFile("", "fctest")
+	tmpf, err := os.CreateTemp("", "fctest")
 	if err != nil {
 		fmt.Println("failed")
 		fmt.Println("[!] couldn't create temporary file: ", err.Error())
@@ -333,7 +332,7 @@ func TestNeverExpire(t *testing.T) {
 	name := tmpf.Name()
 	tmpf.Close()
 
-	err = ioutil.WriteFile(name, []byte("lorem ipsum dolor sit amet."), 0600)
+	err = os.WriteFile(name, []byte("lorem ipsum dolor sit amet."), 0600)
 	if err != nil {
 		fmt.Println("failed")
 		fmt.Println("[!] couldn't write temporary file: ", err.Error())
@@ -428,7 +427,7 @@ func BenchmarkSyncCaching(b *testing.B) {
 }
 
 func ValidateDataMatchesFile(out []byte, filename string) bool {
-	fileData, err := ioutil.ReadFile(filename)
+	fileData, err := os.ReadFile(filename)
 	if err != nil {
 		return false
 	} else if len(fileData) != len(out) {
