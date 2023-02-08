@@ -25,6 +25,8 @@ import (
       "github.com/ucwong/filecache"
 )
 
+...
+
 cache := filecache.NewDefaultCache()
 cache.MaxSize = 128 * filecache.Megabyte
 cache.Start()
