@@ -21,6 +21,12 @@ Let's start with a basic example; we'll create a basic cache and give it a
 maximum item size of 128M:
 
 ```
+import (
+      "github.com/ucwong/filecache"
+)
+
+...
+
 cache := filecache.NewDefaultCache()
 cache.MaxSize = 128 * filecache.Megabyte
 cache.Start()
