@@ -3,7 +3,6 @@
 package filecache
 
 import (
-	"context"
 	"os"
 	"time"
 )
@@ -58,24 +57,13 @@ func (cache *FileCache) ReadFile(name string) (content []byte, err error) {
 			if !SquelchItemNotInCache {
 				err = ItemNotInCache
 			}
-			// async
-			go cache.Cache(name, content)
-		}
-	}
-	return
-}
 
-func (cache *FileCache) ReadFileContext(ctx context.Context, name string) (content []byte, err error) {
-	if cache.InCache(name) {
-		content, _ = cache.GetItem(name)
-	} else {
-		content, err = os.ReadFile(name)
-		if err == nil {
-			if !SquelchItemNotInCache {
-				err = ItemNotInCache
-			}
 			// async
-			go cache.CacheContext(ctx, name, content)
+			go func(n string, c []byte) {
+				cache.Cache(n, c)
+			}(name, content)
+		} else {
+			// TODO whether try to cache file async ?
 		}
 	}
 	return
