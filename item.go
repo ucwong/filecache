@@ -23,8 +23,6 @@ func (itm *cacheItem) WasModified(fi os.FileInfo) bool {
 }
 
 func (itm *cacheItem) GetReader() (b io.Reader) {
-	itm.mutex.Lock()
-	defer itm.mutex.Unlock()
 	b = bytes.NewReader(itm.Access())
 	return
 }
