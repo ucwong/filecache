@@ -365,7 +365,7 @@ func BenchmarkAsyncCaching(b *testing.B) {
 			if cache.InCache("filecache.go") {
 				break
 			}
-			<-time.After(100 * time.Microsecond)
+			<-time.After(200 * time.Microsecond)
 		}
 		cache.Remove("filecache.go")
 		cache.Stop()
