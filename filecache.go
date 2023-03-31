@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -18,7 +19,7 @@ type FileCache struct {
 	in         chan *CacheInfo
 	mutex      sync.RWMutex
 	shutdown   chan any
-	wg       sync.WaitGroup
+	wg         sync.WaitGroup
 	MaxItems   int   // Maximum number of files to cache
 	MaxSize    int64 // Maximum file size to store
 	ExpireItem int   // Seconds a file should be cached for
@@ -403,4 +404,34 @@ func (cache *FileCache) Remove(name string) (ok bool, err error) {
 		ok = false
 	}
 	return
+}
+
+// MostAccessed returns the most accessed items in this cache cache
+func (cache *FileCache) MostAccessed(count int64) []*cacheItem {
+	cache.mutex.RLock()
+	defer cache.mutex.RUnlock()
+
+	p := make(CacheItemPairList, len(cache.items))
+	i := 0
+	for k, v := range cache.items {
+		p[i] = CacheItemPair{k, v.AccessCount}
+		i++
+	}
+	sort.Sort(p)
+
+	var r []*cacheItem
+	c := int64(0)
+	for _, v := range p {
+		if c >= count {
+			break
+		}
+
+		item, ok := cache.items[v.Key]
+		if ok {
+			r = append(r, item)
+		}
+		c++
+	}
+
+	return r
 }

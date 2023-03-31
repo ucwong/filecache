@@ -3,6 +3,7 @@ package filecache
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -19,6 +20,7 @@ func getTimeExpiredCacheItem() *cacheItem {
 }
 
 func (cache *FileCache) _add_cache_item(name string, itm *cacheItem) {
+	itm.name = name
 	cache.items[name] = itm
 }
 
@@ -440,4 +442,42 @@ func ValidateDataMatchesFile(out []byte, filename string) bool {
 		}
 	}
 	return true
+}
+
+func TestAccessCount(t *testing.T) {
+	// add 100 items to the cache
+	count := 100
+	cache := NewDefaultCache() //Cache("testAccessCount")
+	if err := cache.Start(); err != nil {
+		fmt.Println("failed")
+		fmt.Println("[!] cache failed to start: ", err.Error())
+	}
+	for i := 0; i < count; i++ {
+		name := strconv.Itoa(i)
+		itm := getTimeExpiredCacheItem()
+		cache._add_cache_item(name, itm)
+	}
+	// never access the first item, access the second item once, the third
+	// twice and so on...
+	for i := 0; i < count; i++ {
+		for j := 0; j < i; j++ {
+			cache.GetItem(strconv.Itoa(i))
+		}
+	}
+
+	// check MostAccessed returns the items in correct order
+	ma := cache.MostAccessed(int64(count))
+	fmt.Println("ma1", len(ma))
+	for i, item := range ma {
+		if k, _ := strconv.Atoi(item.Key()); k != count-1-i {
+			t.Error("Most accessed items seem to be sorted incorrectly", k, count-1-i, item.Key())
+		}
+	}
+
+	// check MostAccessed returns the correct amount of items
+	want := count - 49
+	ma = cache.MostAccessed(int64(want))
+	if len(ma) != want {
+		t.Error("MostAccessed returns incorrect amount of items:", len(ma), "want:", want)
+	}
 }
