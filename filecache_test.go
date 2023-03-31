@@ -60,9 +60,10 @@ func TestCacheStartStop(t *testing.T) {
 	if err := cache.Start(); err != nil {
 		fmt.Println("failed")
 		fmt.Println("[!] cache failed to start: ", err.Error())
+		return
 	}
+	defer cache.Stop()
 	time.Sleep(1 * time.Second)
-	cache.Stop()
 	fmt.Println("ok")
 }
 
@@ -72,7 +73,9 @@ func TestTimeExpiration(t *testing.T) {
 	if err := cache.Start(); err != nil {
 		fmt.Println("failed")
 		fmt.Println("[!] cache failed to start: ", err.Error())
+		return
 	}
+	defer cache.Stop()
 	name := "expired"
 	itm := getTimeExpiredCacheItem()
 	cache._add_cache_item(name, itm)
@@ -83,7 +86,6 @@ func TestTimeExpiration(t *testing.T) {
 	} else {
 		fmt.Println("ok")
 	}
-	cache.Stop()
 }
 
 func TestTimeExpirationUpdate(t *testing.T) {
@@ -94,13 +96,14 @@ func TestTimeExpirationUpdate(t *testing.T) {
 	if err := cache.Start(); err != nil {
 		fmt.Println("failed")
 		fmt.Println("[!] cache failed to start: ", err.Error())
+		return
 	}
+	defer cache.Stop()
 	testFile := "filecache.go"
 	cache.CacheNow(testFile)
 	if !cache.InCache(testFile) {
 		fmt.Println("failed")
 		fmt.Println("[!] failed to cache file")
-		cache.Stop()
 		t.FailNow()
 	}
 	time.Sleep(1500 * time.Millisecond)
@@ -113,7 +116,6 @@ func TestTimeExpirationUpdate(t *testing.T) {
 		} else {
 			fmt.Println("cache contents do not match file")
 		}
-		cache.Stop()
 		t.FailNow()
 	}
 	time.Sleep(1 * time.Second)
@@ -124,7 +126,6 @@ func TestTimeExpirationUpdate(t *testing.T) {
 	} else {
 		fmt.Println("ok")
 	}
-	cache.Stop()
 }
 
 func TestFileChanged(t *testing.T) {
@@ -133,24 +134,23 @@ func TestFileChanged(t *testing.T) {
 	if err := cache.Start(); err != nil {
 		fmt.Println("failed")
 		fmt.Println("[!] cache failed to start: ", err.Error())
+		return
 	}
+	defer cache.Stop()
 
 	name := writeTempFile(t, "lorem ipsum blah blah")
 	if name == "" {
 		fmt.Println("failed!")
 		fmt.Println("[!] failed to cache item")
-		cache.Stop()
 		t.FailNow()
 	} else if err := cache.CacheNow(name); err != nil {
 		fmt.Println("failed!")
 		fmt.Println("[!] failed to cache item")
-		cache.Stop()
 		t.FailNow()
 	} else if !cache.InCache(name) {
 		fmt.Println("failed")
 		fmt.Println("[!] failed to cache item")
 		os.Remove(name)
-		cache.Stop()
 		t.FailNow()
 	}
 	time.Sleep(1 * time.Second)
@@ -165,7 +165,6 @@ func TestFileChanged(t *testing.T) {
 		t.Fail()
 	}
 	os.Remove(name)
-	cache.Stop()
 	fmt.Println("ok")
 }
 
@@ -175,16 +174,16 @@ func TestCache(t *testing.T) {
 	if err := cache.Start(); err != nil {
 		fmt.Println("failed")
 		fmt.Println("[!] cache failed to start: ", err.Error())
+		return
 	}
+	defer cache.Stop()
 	name := writeTempFile(t, "lorem ipsum akldfjsdlf")
 	if name == "" {
-		cache.Stop()
 		t.FailNow()
 	} else if cache.InCache(name) {
 		fmt.Println("failed")
 		fmt.Println("[!] item should not be in cache yet!")
 		os.Remove(name)
-		cache.Stop()
 		t.FailNow()
 	}
 
@@ -218,9 +217,7 @@ func TestCache(t *testing.T) {
 		fmt.Println("ok")
 		fmt.Printf("\t[*] item cached in %dµs\n", delay)
 	}
-	cache.Stop()
 	os.Remove(name)
-
 }
 
 func TestExpireAll(t *testing.T) {
@@ -231,16 +228,16 @@ func TestExpireAll(t *testing.T) {
 	if err := cache.Start(); err != nil {
 		fmt.Println("failed")
 		fmt.Println("[!] cache failed to start: ", err.Error())
+		return
 	}
+	defer cache.Stop()
 
 	name := writeTempFile(t, "this is a first file and some stuff should go here")
 	if name == "" {
-		cache.Stop()
 		t.Fail()
 	}
 	name2 := writeTempFile(t, "this is the second file")
 	if name2 == "" {
-		cache.Stop()
 		os.Remove(name)
 		t.Fail()
 	}
@@ -274,7 +271,6 @@ func TestExpireAll(t *testing.T) {
 	}
 	os.Remove(name)
 	os.Remove(name2)
-	cache.Stop()
 }
 
 func destroyNames(names []string) {
@@ -290,7 +286,9 @@ func TestExpireOldest(t *testing.T) {
 	if err := cache.Start(); err != nil {
 		fmt.Println("failed")
 		fmt.Println("[!] cache failed to start: ", err.Error())
+		return
 	}
+	defer cache.Stop()
 
 	names := make([]string, 0)
 	for i := 0; i < 1000; i++ {
@@ -311,7 +309,6 @@ func TestExpireOldest(t *testing.T) {
 	if !t.Failed() {
 		fmt.Println("ok")
 	}
-	cache.Stop()
 	destroyNames(names)
 }
 
@@ -323,7 +320,9 @@ func TestNeverExpire(t *testing.T) {
 	if err := cache.Start(); err != nil {
 		fmt.Println("failed")
 		fmt.Println("[!] cache failed to start: ", err.Error())
+		return
 	}
+	defer cache.Stop()
 
 	tmpf, err := os.CreateTemp("", "fctest")
 	if err != nil {
@@ -339,7 +338,6 @@ func TestNeverExpire(t *testing.T) {
 		fmt.Println("failed")
 		fmt.Println("[!] couldn't write temporary file: ", err.Error())
 		os.Remove(name)
-		cache.Stop()
 		t.FailNow()
 	}
 	cache.Cache(name, nil)
@@ -351,7 +349,6 @@ func TestNeverExpire(t *testing.T) {
 	} else {
 		fmt.Println("ok")
 	}
-	cache.Stop()
 	os.Remove(name)
 }
 
@@ -360,7 +357,9 @@ func BenchmarkAsyncCaching(b *testing.B) {
 		cache := NewDefaultCache()
 		if err := cache.Start(); err != nil {
 			fmt.Println("[!] cache failed to start: ", err.Error())
+			return
 		}
+		defer cache.Stop()
 
 		cache.Cache("filecache.go", nil)
 		for {
@@ -370,7 +369,6 @@ func BenchmarkAsyncCaching(b *testing.B) {
 			<-time.After(200 * time.Microsecond)
 		}
 		cache.Remove("filecache.go")
-		cache.Stop()
 	}
 }
 
@@ -381,12 +379,13 @@ func TestCacheReadFile(t *testing.T) {
 	if err := cache.Start(); err != nil {
 		fmt.Println("failed")
 		fmt.Println("[!] cache failed to start: ", err.Error())
+		return
 	}
+	defer cache.Stop()
 
 	if cache.InCache(testFile) {
 		fmt.Println("failed")
 		fmt.Println("[!] file should not be in cache yet")
-		cache.Stop()
 		t.FailNow()
 	}
 
@@ -399,7 +398,6 @@ func TestCacheReadFile(t *testing.T) {
 		} else {
 			fmt.Println("file does not match cache contents")
 		}
-		cache.Stop()
 		t.FailNow()
 	}
 
@@ -412,7 +410,6 @@ func TestCacheReadFile(t *testing.T) {
 	} else {
 		fmt.Println("ok")
 	}
-	cache.Stop()
 }
 
 func BenchmarkSyncCaching(b *testing.B) {
@@ -421,10 +418,11 @@ func BenchmarkSyncCaching(b *testing.B) {
 
 		if err := cache.Start(); err != nil {
 			fmt.Println("[!] cache failed to start: ", err.Error())
+			return
 		}
+		defer cache.Stop()
 		cache.CacheNow("filecache.go")
 		cache.Remove("filecache.go")
-		cache.Stop()
 	}
 }
 
@@ -451,7 +449,10 @@ func TestAccessCount(t *testing.T) {
 	if err := cache.Start(); err != nil {
 		fmt.Println("failed")
 		fmt.Println("[!] cache failed to start: ", err.Error())
+		return
 	}
+	defer cache.Stop()
+
 	for i := 0; i < count; i++ {
 		name := strconv.Itoa(i)
 		itm := getTimeExpiredCacheItem()
