@@ -413,23 +413,25 @@ func (cache *FileCache) MostAccessed(count int64) []*cacheItem {
 	cache.mutex.RLock()
 	defer cache.mutex.RUnlock()
 
-	p := make(CacheItemPairList, len(cache.items))
-	i := 0
+	var (
+		p = make(CacheItemPairList, len(cache.items))
+		i = 0
+		r []*cacheItem
+		c = int64(0)
+	)
+
 	for k, v := range cache.items {
 		p[i] = CacheItemPair{k, v.AccessCount}
 		i++
 	}
 	sort.Sort(p)
 
-	var r []*cacheItem
-	c := int64(0)
 	for _, v := range p {
 		if c >= count {
 			break
 		}
 
-		item, ok := cache.items[v.Key]
-		if ok {
+		if item, ok := cache.items[v.Key]; ok && item != nil {
 			r = append(r, item)
 		}
 		c++
