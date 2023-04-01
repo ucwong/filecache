@@ -251,7 +251,7 @@ func (cache *FileCache) InCache(name string) bool {
 // WriteItem writes the cache item to the specified io.Writer.
 func (cache *FileCache) WriteItem(w io.Writer, name string) (err error) {
 	itm, ok := cache.getItem(name)
-	if !ok {
+	if !ok || itm == nil {
 		if !SquelchItemNotInCache {
 			err = ItemNotInCache
 		}
@@ -277,7 +277,7 @@ func (cache *FileCache) WriteItem(w io.Writer, name string) (err error) {
 // or if you want to use the cache only.
 func (cache *FileCache) GetItem(name string) (content []byte, ok bool) {
 	itm, ok := cache.getItem(name)
-	if !ok {
+	if !ok || itm == nil {
 		return
 	}
 	content = itm.Access()
@@ -287,7 +287,7 @@ func (cache *FileCache) GetItem(name string) (content []byte, ok bool) {
 // GetItemString is the same as GetItem, except returning a string.
 func (cache *FileCache) GetItemString(name string) (content string, ok bool) {
 	itm, ok := cache.getItem(name)
-	if !ok {
+	if !ok || itm == nil {
 		return
 	}
 	content = string(itm.Access())
