@@ -22,6 +22,10 @@ func (itm *cacheItem) Key() string {
 	return itm.name
 }
 
+func (itm *cacheItem) Content() []byte {
+	return itm.content
+}
+
 func (itm *cacheItem) WasModified(fi os.FileInfo) bool {
 	itm.mutex.RLock()
 	defer itm.mutex.RUnlock()
