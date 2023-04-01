@@ -75,7 +75,7 @@ func (cache *FileCache) addItem(name string, content []byte) (err error) {
 
 	itm, err := cacheFile(name, cache.MaxSize, content)
 	cache.mutex.Lock()
-	if cache.items != nil && itm != nil {
+	if cache.items != nil && itm != nil && err == nil {
 		cache.items[name] = itm
 		cache.mutex.Unlock()
 	} else {
@@ -114,8 +114,10 @@ func (cache *FileCache) itemListener() {
 // entry; for example, if a large number of files are cached at once, none
 // may appear older than another.
 func (cache *FileCache) expireOldest(force bool) {
-	oldest := time.Now()
-	oldestName := ""
+	var (
+		oldest     = time.Now()
+		oldestName = ""
+	)
 
 	for name, itm := range cache.items {
 		if (force && oldestName == "") || itm.Lastaccess.Before(oldest) {
@@ -177,7 +179,7 @@ func (cache *FileCache) changed(name string) bool {
 // Expired returns true if the item has not been accessed recently.
 func (cache *FileCache) expired(name string) bool {
 	itm, ok := cache.getItem(name)
-	if !ok {
+	if !ok || itm == nil {
 		return true
 	}
 	dur := itm.Dur()
