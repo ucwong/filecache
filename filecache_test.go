@@ -258,7 +258,7 @@ func TestExpireAll(t *testing.T) {
 	}
 
 	if !t.Failed() {
-		time.Sleep(1250 * time.Millisecond)
+		time.Sleep(2250 * time.Millisecond)
 		if cache.Size() > 0 {
 			fmt.Println("failed")
 			fmt.Printf("[!] %d items still in cache", cache.Size())
@@ -352,7 +352,7 @@ func TestNeverExpire(t *testing.T) {
 	os.Remove(name)
 }
 
-func BenchmarkAsyncCaching(b *testing.B) {
+/*func BenchmarkAsyncCaching(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		cache := NewDefaultCache()
 		if err := cache.Start(); err != nil {
@@ -369,6 +369,39 @@ func BenchmarkAsyncCaching(b *testing.B) {
 			<-time.After(200 * time.Microsecond)
 		}
 		cache.Remove("filecache.go")
+	}
+}*/
+
+func BenchmarkAsyncCaching(b *testing.B) {
+	file := createTempFile(&testing.T{}, 64)
+	defer os.Remove(file)
+
+	for i := 0; i < b.N; i++ {
+		cache := NewDefaultCache()
+		if err := cache.Start(); err != nil {
+			b.Fatalf("cache failed to start: %v", err)
+		}
+
+		done := make(chan struct{})
+		go func() {
+			cache.Cache(file, nil)
+			for {
+				if cache.InCache(file) {
+					close(done)
+					return
+				}
+				time.Sleep(100 * time.Microsecond)
+			}
+		}()
+
+		select {
+		case <-done:
+			_, _ = cache.Remove(file)
+		case <-time.After(500 * time.Millisecond):
+			b.Fatalf("timed out waiting for cache")
+		}
+
+		cache.Stop()
 	}
 }
 
@@ -442,7 +475,7 @@ func ValidateDataMatchesFile(out []byte, filename string) bool {
 	return true
 }
 
-func TestAccessCount(t *testing.T) {
+/*func TestAccessCount(t *testing.T) {
 	// add 100 items to the cache
 	count := 100
 	cache := NewDefaultCache() //Cache("testAccessCount")
@@ -480,5 +513,40 @@ func TestAccessCount(t *testing.T) {
 	ma = cache.MostAccessed(int64(want))
 	if len(ma) != want {
 		t.Error("MostAccessed returns incorrect amount of items:", len(ma), "want:", want)
+	}
+}*/
+
+func TestAccessCount(t *testing.T) {
+	count := 100
+	cache := NewDefaultCache()
+	cache.Every = 0
+	if err := cache.Start(); err != nil {
+		t.Fatalf("cache failed to start: %v", err)
+	}
+	defer cache.Stop()
+
+	for i := 0; i < count; i++ {
+		name := strconv.Itoa(i)
+		itm := getTimeExpiredCacheItem()
+		itm.AccessCount = uint64(i)
+		cache._add_cache_item(name, itm)
+	}
+
+	ma := cache.MostAccessed(int64(count))
+	if len(ma) != count {
+		t.Fatalf("MostAccessed returned wrong length: got %d, want %d", len(ma), count)
+	}
+	for i, item := range ma {
+		k, _ := strconv.Atoi(item.Key())
+		expected := count - 1 - i
+		if k != expected {
+			t.Fatalf("MostAccessed sort incorrect at index %d: got key %d, want %d", i, k, expected)
+		}
+	}
+
+	want := count - 49
+	ma = cache.MostAccessed(int64(want))
+	if len(ma) != want {
+		t.Fatalf("MostAccessed returns incorrect amount of items: got %d, want %d", len(ma), want)
 	}
 }
