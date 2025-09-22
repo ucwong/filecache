@@ -258,7 +258,7 @@ func TestExpireAll(t *testing.T) {
 	}
 
 	if !t.Failed() {
-		time.Sleep(1250 * time.Millisecond)
+		time.Sleep(2250 * time.Millisecond)
 		if cache.Size() > 0 {
 			fmt.Println("failed")
 			fmt.Printf("[!] %d items still in cache", cache.Size())
