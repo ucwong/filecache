@@ -352,7 +352,7 @@ func TestNeverExpire(t *testing.T) {
 	os.Remove(name)
 }
 
-func BenchmarkAsyncCaching(b *testing.B) {
+/*func BenchmarkAsyncCaching(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		cache := NewDefaultCache()
 		if err := cache.Start(); err != nil {
@@ -369,6 +369,39 @@ func BenchmarkAsyncCaching(b *testing.B) {
 			<-time.After(200 * time.Microsecond)
 		}
 		cache.Remove("filecache.go")
+	}
+}*/
+
+func BenchmarkAsyncCaching(b *testing.B) {
+	file := createTempFile(&testing.T{}, 64)
+	defer os.Remove(file)
+
+	for i := 0; i < b.N; i++ {
+		cache := NewDefaultCache()
+		if err := cache.Start(); err != nil {
+			b.Fatalf("cache failed to start: %v", err)
+		}
+
+		done := make(chan struct{})
+		go func() {
+			cache.Cache(file, nil)
+			for {
+				if cache.InCache(file) {
+					close(done)
+					return
+				}
+				time.Sleep(100 * time.Microsecond)
+			}
+		}()
+
+		select {
+		case <-done:
+			_, _ = cache.Remove(file)
+		case <-time.After(500 * time.Millisecond):
+			b.Fatalf("timed out waiting for cache")
+		}
+
+		cache.Stop()
 	}
 }
 

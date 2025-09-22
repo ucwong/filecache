@@ -106,7 +106,6 @@ func (cache *FileCache) deleteItem(name string) {
 // itemListener is a goroutine that listens for incoming files and caches
 // them.
 func (cache *FileCache) itemListener() {
-	defer cache.wg.Done()
 	for {
 		select {
 		case c := <-cache.in:
@@ -153,7 +152,6 @@ func (cache *FileCache) expireOldest(force bool) {
 // It runs periodically, every cache.Every seconds. If cache.Every is set
 // to 0, it will not run.
 func (cache *FileCache) vacuum() {
-	defer cache.wg.Done()
 	if cache.Every < 1 {
 		return
 	}
@@ -424,8 +422,14 @@ func (cache *FileCache) Start() error {
 	cache.shutdown = make(chan struct{})
 
 	cache.wg.Add(2)
-	go cache.itemListener()
-	go cache.vacuum()
+	go func() {
+		defer cache.wg.Done()
+		cache.itemListener()
+	}()
+	go func() {
+		defer cache.wg.Done()
+		cache.vacuum()
+	}()
 	return nil
 }
 
