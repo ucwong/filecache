@@ -1,12 +1,27 @@
 package filecache
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strconv"
 	"testing"
 	"time"
 )
+
+func createTempFile(t *testing.T, size int) string {
+	t.Helper()
+	f, err := os.CreateTemp("", "filecache-bench-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	data := bytes.Repeat([]byte("x"), size)
+	if _, err := f.Write(data); err != nil {
+		t.Fatal(err)
+	}
+	return f.Name()
+}
 
 func getTimeExpiredCacheItem() *cacheItem {
 	TwoHours, err := time.ParseDuration("-2h")
